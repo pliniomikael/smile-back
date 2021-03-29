@@ -21,14 +21,27 @@ class PerfilViajante(models.Model):
 class Trip(models.Model):
 
     tipo_viajante = models.ForeignKey(PerfilViajante, on_delete=models.CASCADE)
+    destination = models.CharField(max_length=50, null=True)
+    income = models.DecimalField(max_digits=9, decimal_places=2, null=True)
+    trip_date = models.DateField(auto_now=False, auto_now_add=False, null=True)
     hospedagem = models.DecimalField(max_digits=9, decimal_places=2)
     alimentacao = models.DecimalField(max_digits=9, decimal_places=2)
     extra = models.DecimalField(max_digits=9, decimal_places=2)
     passagem = models.DecimalField(max_digits=9, decimal_places=2)
     total = models.DecimalField(max_digits=9, decimal_places=2, null=True)
+    remaining_days = models.IntegerField(null=True)
+    percent = models.FloatField(null=True)
+    milhas = models.FloatField(null=True)
+    wallet = models.DecimalField(max_digits=9, decimal_places=2, null=True)
 
     def save(self, *args, **kwargs):
+        self.income = "%.2f" % (float(self.wallet) * float(0.03975))
+        d_days = self.trip_date - datetime.date.today()
+        self.remaining_days = d_days.days
         self.total = self.hospedagem + self.alimentacao + self.extra + self.passagem
+        self.percent = "%.2f" % ((self.wallet * 100) / self.total)
+        self.milhas = self.wallet * 6
+
         super(Trip, self).save(*args, **kwargs)
 
     class Meta:
@@ -42,22 +55,27 @@ class Trip(models.Model):
 class Resumo(models.Model):
 
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE)
-    date_initial = models.DateField(auto_now=False, auto_now_add=False)
-    date_end = models.DateField(auto_now=False, auto_now_add=False)
+    date = models.DateField(auto_now=False, auto_now_add=False)
+    income = models.DecimalField(max_digits=9, decimal_places=2, null=True)
+
+    trip_date = models.DateField(auto_now=False, auto_now_add=False)
     money_end = models.DecimalField(max_digits=9, decimal_places=2, null=True)
     money_month = models.DecimalField(max_digits=9,
                                       decimal_places=2,
                                       null=True)
     num_months = models.IntegerField()
+    trip_cost = models.DecimalField(max_digits=9, decimal_places=2, null=True)
 
     def save(self, *args, **kwargs):
-        print(self.trip.total)
-        self.num_months = (self.date_end.year -
-                           self.date_initial.year) * 12 + (
-                               self.date_end.month - self.date_initial.month)
+        self.date = datetime.date.today()
+
+        self.num_months = (self.trip_date.year - self.date.year) * 12 + (
+            self.trip_date.month - self.date.month)
         self.money_end = float(self.trip.total) + float(
             float(self.trip.total) * float(0.03975))
         self.money_month = self.trip.total / self.num_months
+        self.trip_cost = self.trip.total
+        self.income = "%.2f" % (float(self.trip_cost) * float(0.03975))
         super(Resumo, self).save(*args, **kwargs)
 
     class Meta:
@@ -71,22 +89,22 @@ class Resumo(models.Model):
 class ResumoDate(models.Model):
 
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE)
-    money_month = models.DecimalField(max_digits=9,
-                                      decimal_places=2,
-                                      null=True)
-    date_initial = models.DateField(auto_now=False, auto_now_add=False)
-    date_end = models.DateField(auto_now=False, auto_now_add=False)
+    money_month = models.DecimalField(max_digits=9, decimal_places=2)
     money_end = models.DecimalField(max_digits=9, decimal_places=2, null=True)
+    date = models.DateField(auto_now=False, auto_now_add=False)
+    trip_date = models.DateField(auto_now=False, auto_now_add=False)
     num_months = models.IntegerField()
+    trip_cost = models.DecimalField(max_digits=9, decimal_places=2, null=True)
+    income = models.DecimalField(max_digits=9, decimal_places=2, null=True)
 
     def save(self, *args, **kwargs):
-        print(self.trip.total)
         self.num_months = math.ceil(self.trip.total / self.money_month)
-        self.date_initial = datetime.datetime.now()
-        self.date_end = self.date_initial + relativedelta(
-            months=self.num_months)
+        self.date = datetime.datetime.now()
+        self.trip_date = self.date + relativedelta(months=self.num_months)
         self.money_end = float(self.trip.total) + float(
             float(self.trip.total) * float(0.03975))
+        self.trip_cost = self.trip.total
+        self.income = "%.2f" % (float(self.trip_cost) * float(0.03975))
         super(ResumoDate, self).save(*args, **kwargs)
 
     class Meta:

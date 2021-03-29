@@ -123,3 +123,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+USE_THOUSAND_SEPARATOR = True
+THOUSAND_SEPARATOR = "."
+NUMBER_GROUPING = 3
